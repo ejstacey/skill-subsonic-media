@@ -1,0 +1,9 @@
+{
+  "SubsonicMediaSkill": {
+      "server": "server.fqdn",
+      "port": "1234",
+      "username": "username",
+      "password": "password",
+      "path" : "/path"
+  }
+}
