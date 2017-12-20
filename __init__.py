@@ -1,3 +1,28 @@
+# Copyright 2016 Mycroft AI, Inc.
+#
+# This file is part of Mycroft Core.
+#
+# Mycroft Core is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Mycroft Core is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Mycroft Core.  If not, see <http://www.gnu.org/licenses/>.
+
+
+# Visit https://docs.mycroft.ai/skill.creation for more detailed information
+# on the structure of this skill and its containing folder, as well as
+# instructions for designing your own skill based on this template.
+
+
+# Import statements: the list of outside modules you'll be using in your
+# skills, whether from other files in mycroft-core or from external libraries
 import sys
 import vlc
 import libsonic
@@ -8,22 +33,33 @@ from pprint import pprint
 from hashlib import md5
 from urllib import urlencode
 from os.path import dirname, abspath, basename
-from mycroft.skills.media import MediaSkill
 from adapt.intent import IntentBuilder
-from mycroft.messagebus.message import Message
+from mycroft.skills.core import MycroftSkill
 from mycroft.util.log import getLogger
+from mycroft.messagebus.message import Message
+#from mycroft.skills.media import MediaSkill
 from mycroft.configuration import ConfigurationManager
+#from mycroft.skills.core import PlaybackControlSkill
+from mycroft.skills.audioservice import AudioService
 from collections import defaultdict
-logger = getLogger(abspath(__file__).split('/')[-2])
+
 __author__ = 'ejstacey'
 
-class SubsonicMediaSkill(MediaSkill):
+# Logger: used for debug lines, like "LOGGER.debug(xyz)". These
+# statements will show up in the command line when running Mycroft.
+LOGGER = getLogger(__name__)
+
+# The logic of each skill is contained within its own class, which inherits
+# base methods from the MycroftSkill class with the syntax you can see below:
+# "class ____Skill(MycroftSkill)"
+class SubsonicMediaSkill(MycroftSkill):
     def __init__(self):
         super(SubsonicMediaSkill, self).__init__('Subsonic Media Skill')
         self.volume_is_low = False
 
     def _connect(self, message):
         self.config = ConfigurationManager.get()
+        self.vlc_instance = vlc.Instance()
         self.subsonic_server = self.config['SubsonicMediaSkill']['subsonic_server']
         self.subsonic_port = self.config['SubsonicMediaSkill']['subsonic_port']
         self.subsonic_path = self.config['SubsonicMediaSkill']['subsonic_path']
@@ -40,7 +76,7 @@ class SubsonicMediaSkill(MediaSkill):
            }
         self.base_url = self.subsonic_server + ':' + str(self.subsonic_port) + '/' + self.subsonic_path + '/rest/'
         self.args = '?%s' % urlencode(self.qdict)
-        logger.debug(self)
+        LOGGER.debug(self)
 
 	try:
 	    self.subsonic_connection = libsonic.Connection(
@@ -51,13 +87,13 @@ class SubsonicMediaSkill(MediaSkill):
 		self.subsonic_path + '/rest/'
 	    )
 	except:
-           logger.info('Could not connect to server, retrying in 10 sec')
+           LOGGER.info('Could not connect to server ' + self.subsonic_server + ', retrying in 10 sec')
            time.sleep(10)
            self.emitter.emit(Message(self.name + '.connect'))
 
            return
 
-        logger.info('Loading content')
+        LOGGER.info('Loading content')
 	self.albums = defaultdict(dict)
 	self.artists = defaultdict(dict)
 	cont = 1
@@ -88,7 +124,7 @@ class SubsonicMediaSkill(MediaSkill):
 	self.register_vocabulary('some music', 'SomeMusicKeyword')
 	self.register_vocabulary('a song', 'ASongKeyword')
         for p in self.playlist.keys():
-            logger.debug("Playlist: " + p)
+            LOGGER.debug("Playlist: " + p)
 	    self.register_vocabulary(p, 'PlaylistKeyword' + self.name)
 	intent = IntentBuilder('PlayPlaylistIntent' + self.name)\
             .require('PlayKeyword')\
@@ -108,7 +144,7 @@ class SubsonicMediaSkill(MediaSkill):
         self.register_intent(intent, self.handle_play_random)
 
     def initialize(self):
-        logger.info('initializing Subsonic Media skill')
+        LOGGER.info('initializing Subsonic Media skill')
         super(SubsonicMediaSkill, self).initialize()
         self.load_data_files(dirname(__file__))
 
@@ -119,11 +155,11 @@ class SubsonicMediaSkill(MediaSkill):
         self.vlc_player = self.vlc_instance.media_player_new()
 
     def handle_play(self, message):
-        logger.info("I'd play")
+        LOGGER.info("I'd play")
         #self.vlc_player.play()
 
     def handle_play_playlist(self, message):
-        logger.info("I'd play playlist")
+        LOGGER.info("I'd play playlist")
         #self.media = self.vlc_instance.media_new(self.base_url, '--loop', '--http-caching=500')
         #self.vlc_player.set_media(self.media)
 
