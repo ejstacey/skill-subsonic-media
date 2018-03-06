@@ -8,14 +8,14 @@
                     {
                         "type": "label",
                         "value": "",
-                        "label": "You should have SSL set up/enabled for your subsonic connection. If you have a path, use it with no trailing slash."
+                        "label": "Make sure you specify https or http in the server field. If you have a path, use it with no trailing slash in the path field."
                     },
                     {
                         "name": "server",
                         "type": "text",
                         "label": "Server",
                         "value": "",
-                        "placeholder": "192.168.0.1 or subsonic.mydomain.com"
+                        "placeholder": "https://192.168.0.1 or https://subsonic.mydomain.com"
                     },
                     {
                         "name": "port",
