@@ -1,0 +1,51 @@
+{
+    "name": "Subsonic Media Skill",
+    "skillMetadata": {
+        "sections": [
+            {
+                "name": "",
+                "fields": [
+                    {
+                        "type": "label",
+                        "value": "",
+                        "label": "You should have SSL set up/enabled for your subsonic connection. If you have a path, use it with no trailing slash."
+                    },
+                    {
+                        "name": "server",
+                        "type": "text",
+                        "label": "Server",
+                        "value": "",
+                        "placeholder": "192.168.0.1 or subsonic.mydomain.com"
+                    },
+                    {
+                        "name": "port",
+                        "type": "text",
+                        "label": "Port",
+                        "value": "",
+                        "placeholder": "443"
+                    },
+                    {
+                        "name": "path",
+                        "type": "text",
+                        "label": "Path",
+                        "value": "",
+                        "placeholder": "/subsonic"
+                    },
+                    {
+                        "name": "username",
+                        "type": "text",
+                        "label": "Username",
+                        "value": "",
+                        "placeholder": "subsonic_user"
+                    },
+                    {
+                        "name": "password",
+                        "type": "password",
+                        "label": "Password",
+                        "value": ""
+                    }
+                ]
+            }
+        ]
+    }
+}
