@@ -34,9 +34,11 @@ from hashlib import md5
 from urllib import urlencode
 from os.path import dirname, abspath, basename
 from adapt.intent import IntentBuilder
-from mycroft.skills.core import MycroftSkill, intent_handler
+from mycroft.skills.core import MycroftSkill, intent_file_handler
 from mycroft.util.log import LOG
 from collections import defaultdict
+from fuzzywuzzy.process import extractOne
+
 try:
     from mycroft.skills.audioservice import AudioService
 except:
@@ -111,32 +113,14 @@ class SubsonicMediaSkill(MycroftSkill):
 		    self.artists[lartist['name']] = lartist
 
 	self.playlist = {}
-	self.playlist.update(self.albums)
-	self.playlist.update(self.artists)
+        self.playlist.update(self.albums);
+        self.playlist.update(self.artists);
+        self.albums_keys = self.albums.keys();
+        self.artists_keys = self.artists.keys();
+        self.playlist_keys = self.albums_keys + self.artists_keys;
+	#self.playlist = self.albums + self.artists
 
-	self.register_vocabulary(self.name, 'NameKeyword')
-	self.register_vocabulary('some music', 'SomeMusicKeyword')
-	self.register_vocabulary('a song', 'ASongKeyword')
-        for p in self.playlist.keys():
-            LOG.debug("Playlist: " + p)
-	    self.register_vocabulary(p, 'PlaylistKeyword' + self.name)
-	intent = IntentBuilder('PlayPlaylistIntent' + self.name)\
-            .require('PlayKeyword')\
-            .require('PlaylistKeyword' + self.name)\
-            .build()
-        self.register_intent(intent, self.handle_play_playlist)
-        intent = IntentBuilder('PlayFromIntent' + self.name)\
-            .require('PlayKeyword')\
-            .require('PlaylistKeyword')\
-            .require('NameKeyword')\
-            .build()
-	self.register_intent(intent, self.handle_play_playlist)
-        intent = IntentBuilder('PlayRandomIntent' + self.name)\
-            .require('PlayKeyword')\
-            .one_of('SomeMusicKeywork', 'ASongKeyword')\
-            .build()
-        self.register_intent(intent, self.handle_play_random)
-
+        self.register_vocabulary(self.name, 'NameKeyword')
 
     def initialize(self):
         LOG.info('initializing Subsonic Media skill')
@@ -149,16 +133,24 @@ class SubsonicMediaSkill(MycroftSkill):
         if AudioService:
 	    self.audioservice = AudioService(self.emitter)
 
-        #self.add_event('mycroft.audio.service.next', self.next_track)
-        #self.add_event('mycroft.audio.service.prev', self.prev_track)
-        #self.add_event('mycroft.audio.service.pause', self.pause)
-	#self.add_event('mycroft.audio.service.resume', self.resume)
+        self.add_event('mycroft.audio.service.next', self.handle_next)
+        self.add_event('mycroft.audio.service.prev', self.handle_prev)
+        self.add_event('mycroft.audio.service.pause', self.handle_pause)
+	self.add_event('mycroft.audio.service.resume', self.handle_resume)
 
         #self.vlc_instance = vlc.Instance()
         #self.vlc_player = self.vlc_instance.media_player_new()
 
+    @intent_file_handler('Play.intent')
     def handle_play(self, message):
-        LOG.info("I'd play")
+        LOG.info('Handling play request')
+        key, confidence = extractOne(message.data.get('music'), self.playlist_keys)
+        if confidence > 50:
+            p = key
+        else:
+            LOG.info('couldn\'t find playlist:' + key)
+            return
+        LOG.info('I would play: ' + p)
         #self.vlc_player.play()
 
     def handle_play_playlist(self, message):
@@ -168,6 +160,18 @@ class SubsonicMediaSkill(MycroftSkill):
 
     def handle_play_random(self, message):
         self.speak("Playing a random song")
+
+    def handle_next(self, message):
+        LOG.info("I'd play next");
+
+    def handle_prev(self, message):
+        LOG.info("I'd play prev");
+
+    def handle_pause(self, message):
+        LOG.info("I'd play pause");
+
+    def handle_resume(self, message):
+        LOG.info("I'd play resume");
 
 
 def create_skill():
