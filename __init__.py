@@ -29,7 +29,7 @@ import libsonic
 import time
 import requests
 import os
-from pprint import pprint
+import pprint 
 from hashlib import md5
 from urllib import urlencode
 from os.path import dirname, abspath, basename
@@ -38,6 +38,8 @@ from mycroft.skills.core import MycroftSkill, intent_file_handler
 from mycroft.util.log import LOG
 from collections import defaultdict
 from fuzzywuzzy.process import extractOne
+
+pp = pprint.PrettyPrinter(indent=4)
 
 try:
     from mycroft.skills.audioservice import AudioService
@@ -92,6 +94,7 @@ class SubsonicMediaSkill(MycroftSkill):
         LOG.info('Loading content')
 	self.albums = defaultdict(dict)
 	self.artists = defaultdict(dict)
+	self.songs = defaultdict(dict)
 	cont = 1
 	i = 0
 
@@ -101,7 +104,15 @@ class SubsonicMediaSkill(MycroftSkill):
 		cont = 0
 	    else: 
 		for album in self.results['albumList2']['album']:
-		    self.albums[album['name']][album['artist']] = album
+		    self.albums[album['name']] = album;
+                    self.albums[album['name'] + ' by ' + album['artist']] = album;
+                    self.song_results = self.subsonic_connection.getAlbum(album['id'])
+                    #LOG.info(pp.pformat(self.song_results))
+                    for song in self.song_results['album']['song']:
+                        #LOG.info(pp.pformat(song))
+                        self.songs[song['title']] = song
+                        self.songs[song['title'] + ' by ' + song['artist']] = song
+
 	    i = i+1
 
 	self.results = self.subsonic_connection.getArtists()
@@ -115,10 +126,13 @@ class SubsonicMediaSkill(MycroftSkill):
 	self.playlist = {}
         self.playlist.update(self.albums);
         self.playlist.update(self.artists);
+        self.playlist.update(self.songs);
+        #LOG.info('subsonic :' + pp.pformat(self.playlist));
         self.albums_keys = self.albums.keys();
         self.artists_keys = self.artists.keys();
-        self.playlist_keys = self.albums_keys + self.artists_keys;
-	#self.playlist = self.albums + self.artists
+        self.songs_keys = self.songs.keys();
+        self.playlist_keys = self.albums_keys + self.artists_keys + self.songs_keys;
+        #LOG.info('subsonic :' + pp.pformat(self.playlist_keys));
 
         self.register_vocabulary(self.name, 'NameKeyword')
 
@@ -148,9 +162,25 @@ class SubsonicMediaSkill(MycroftSkill):
         if confidence > 50:
             p = key
         else:
-            LOG.info('couldn\'t find playlist:' + key)
+            self.speak('couldn\'t find anything matching ' + key)
             return
-        LOG.info('I would play: ' + p)
+
+        if p in self.playlist:
+            #self.speak("Playing " + p);
+            LOG.info('subsonic :' + pp.pformat(self.playlist[p]));
+        else:
+            self.speak('can\'t find ' + p)
+            return
+
+        self.song_url = self.base_url + '/stream/' + self.playlist[p]['id'] + self.args
+        LOG.info("URL: " + self.song_url)
+
+        # if audio service module is available use it
+        if self.audioservice:
+            self.audioservice.play(self.song_url, "Playing " + p)
+        else: # othervice use normal mp3 playback
+            self.process = play_mp3(self.song_url, "Playing " + p)
+
         #self.vlc_player.play()
 
     def handle_play_playlist(self, message):
