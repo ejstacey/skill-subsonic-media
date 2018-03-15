@@ -2,3 +2,4 @@
 python-vlc
 py-sonic
 fuzzywuzzy
+python-Levenshtein
