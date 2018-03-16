@@ -1,18 +1,11 @@
 # Subsonic Media Skill
 
-This skill plays music from a subsonic media server (https://www.subsonic.org/)
+This skill plays music from a Subsonic Media Server (https://www.subsonic.org/)
 
-This uses the vlc python library to play the music
+Note that depending the size of your library, it can take 1-5 minutes to load this skill. 
 
 ## installing
-Add the following to settings.json:
-  "SubsonicMediaSkill": {
-    "subsonic_server": "<server>",
-    "subsonic_port": "port",
-    "subsonic_path": "/path",
-    "subsonic_username": "username",
-    "subsonic_password": "password"
-  },
+Install this skill, then go to https://home.mycroft.ai and enter your subsonic details under 
 
 
 ## Current state
@@ -24,4 +17,5 @@ Known issues:
  - ...
 
 TODO:
- - ...
+ - video for chromecast output?
+ - podcasts?

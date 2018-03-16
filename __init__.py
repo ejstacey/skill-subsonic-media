@@ -24,7 +24,6 @@
 
 
 import sys
-#import vlc
 import libsonic
 import time
 import requests
@@ -65,15 +64,15 @@ class SubsonicMediaSkill(MycroftSkill):
         self.subsonic_password = self.settings['password']
         self.salt = md5(os.urandom(100)).hexdigest()
         self.token = md5(self.subsonic_password + self.salt[:12]).hexdigest()
-        self.qdict = {'f': 'json',
+        self.qdict = {'f': 'mp3',
            'v': '1.16.0',
            'c': 'mycroft-subsonic',
            'u': self.subsonic_username,
            's': self.salt[:12],
            't': self.token
            }
-        self.base_url = self.subsonic_server + ':' + str(self.subsonic_port) + '/' + self.subsonic_path + '/rest/'
-        self.args = '?%s' % urlencode(self.qdict)
+        self.base_url = self.subsonic_server + ':' + str(self.subsonic_port) + self.subsonic_path + '/rest'
+        self.args = '%s' % urlencode(self.qdict)
 
 	try:
 	    self.subsonic_connection = libsonic.Connection(
@@ -147,13 +146,11 @@ class SubsonicMediaSkill(MycroftSkill):
         if AudioService:
 	    self.audioservice = AudioService(self.emitter)
 
-        self.add_event('mycroft.audio.service.next', self.handle_next)
-        self.add_event('mycroft.audio.service.prev', self.handle_prev)
-        self.add_event('mycroft.audio.service.pause', self.handle_pause)
-	self.add_event('mycroft.audio.service.resume', self.handle_resume)
-
-        #self.vlc_instance = vlc.Instance()
-        #self.vlc_player = self.vlc_instance.media_player_new()
+#        self.add_event('mycroft.audio.service.next', self.handle_next)
+#        self.add_event('mycroft.audio.service.prev', self.handle_prev)
+#        self.add_event('mycroft.audio.service.pause', self.handle_pause)
+#	self.add_event('mycroft.audio.service.resume', self.handle_resume)
+#	self.add_event('mycroft.audio.service.stop', self.handle_stop)
 
     @intent_file_handler('Play.intent')
     def handle_play(self, message):
@@ -172,21 +169,18 @@ class SubsonicMediaSkill(MycroftSkill):
             self.speak('can\'t find ' + p)
             return
 
-        self.song_url = self.base_url + '/stream/' + self.playlist[p]['id'] + self.args
+        self.song_url = self.base_url + '/stream?id=' + self.playlist[p]['id'] + '&' + self.args
         LOG.info("URL: " + self.song_url)
 
         # if audio service module is available use it
         if self.audioservice:
-            self.audioservice.play(self.song_url, "Playing " + p)
+            LOG.info("Playing via audioservice")
+            self.audioservice.play(self.song_url, message.data['utterance'])
         else: # othervice use normal mp3 playback
-            self.process = play_mp3(self.song_url, "Playing " + p)
+            LOG.info("Playing via mp3 playback")
+            self.process = play_mp3(self.song_url)
 
         #self.vlc_player.play()
-
-    def handle_play_playlist(self, message):
-        LOG.info("I'd play playlist")
-        #self.media = self.vlc_instance.media_new(self.base_url, '--loop', '--http-caching=500')
-        #self.vlc_player.set_media(self.media)
 
     def handle_play_random(self, message):
         self.speak("Playing a random song")
