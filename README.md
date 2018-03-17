@@ -19,14 +19,14 @@ Working features:
   - prev
 
 
-  - \<content\> can be:
-    - \<song\>
-    - \<song\> by \<artist\>
+\<content\> can be:
+  - \<song\>
+  - \<song\> by \<artist\>
 
 
-  - \<backend\> can be the valid name of how to play. You generally only need:
-    - vlc [default if not given]
-    - \<name of chromecast\>
+\<backend\> can be the valid name of how to play. You generally only need:
+  - vlc [default if not given]
+  - \<name of chromecast\>
 
 Known issues:
   - As mentioned in the summary at the top, if you have a large library it can take minutes to initialise, and then another chunk of time (tens of seconds) to determine what you specified as \<content\>.
