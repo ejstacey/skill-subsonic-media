@@ -106,9 +106,7 @@ class SubsonicMediaSkill(MycroftSkill):
 		    self.albums[album['name']] = album;
                     self.albums[album['name'] + ' by ' + album['artist']] = album;
                     self.song_results = self.subsonic_connection.getAlbum(album['id'])
-                    #LOG.info(pp.pformat(self.song_results))
                     for song in self.song_results['album']['song']:
-                        #LOG.info(pp.pformat(song))
                         self.songs[song['title']] = song
                         self.songs[song['title'] + ' by ' + song['artist']] = song
 
@@ -126,12 +124,10 @@ class SubsonicMediaSkill(MycroftSkill):
         self.playlist.update(self.albums);
         self.playlist.update(self.artists);
         self.playlist.update(self.songs);
-        #LOG.info('subsonic :' + pp.pformat(self.playlist));
         self.albums_keys = self.albums.keys();
         self.artists_keys = self.artists.keys();
         self.songs_keys = self.songs.keys();
         self.playlist_keys = self.albums_keys + self.artists_keys + self.songs_keys;
-        #LOG.info('subsonic :' + pp.pformat(self.playlist_keys));
 
         self.register_vocabulary(self.name, 'NameKeyword')
 
@@ -145,12 +141,6 @@ class SubsonicMediaSkill(MycroftSkill):
 
         if AudioService:
 	    self.audioservice = AudioService(self.emitter)
-
-#        self.add_event('mycroft.audio.service.next', self.handle_next)
-#        self.add_event('mycroft.audio.service.prev', self.handle_prev)
-#        self.add_event('mycroft.audio.service.pause', self.handle_pause)
-#	self.add_event('mycroft.audio.service.resume', self.handle_resume)
-#	self.add_event('mycroft.audio.service.stop', self.handle_stop)
 
     @intent_file_handler('Play.intent')
     def handle_play(self, message):
@@ -184,24 +174,6 @@ class SubsonicMediaSkill(MycroftSkill):
         else: # othervice use normal mp3 playback
             LOG.info("Playing via mp3 playback")
             self.process = play_mp3(self.song_url)
-
-        #self.vlc_player.play()
-
-    def handle_play_random(self, message):
-        self.speak("Playing a random song")
-
-    def handle_next(self, message):
-        LOG.info("I'd play next");
-
-    def handle_prev(self, message):
-        LOG.info("I'd play prev");
-
-    def handle_pause(self, message):
-        LOG.info("I'd play pause");
-
-    def handle_resume(self, message):
-        LOG.info("I'd play resume");
-
 
 def create_skill():
     return SubsonicMediaSkill()
