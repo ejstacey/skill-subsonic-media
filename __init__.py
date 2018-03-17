@@ -162,8 +162,13 @@ class SubsonicMediaSkill(MycroftSkill):
             self.speak('couldn\'t find anything matching ' + key)
             return
 
+        backend = message.data.get('backend')
+        if backend is None:
+            backend = 'vlc'
+        else:
+            LOG.info(type(backend))
+
         if p in self.playlist:
-            #self.speak("Playing " + p);
             LOG.info('subsonic :' + pp.pformat(self.playlist[p]));
         else:
             self.speak('can\'t find ' + p)
@@ -174,8 +179,8 @@ class SubsonicMediaSkill(MycroftSkill):
 
         # if audio service module is available use it
         if self.audioservice:
-            LOG.info("Playing via audioservice")
-            self.audioservice.play(self.song_url, message.data['utterance'])
+            LOG.info("Playing via audioservice on " + backend)
+            self.audioservice.play(self.song_url, backend)
         else: # othervice use normal mp3 playback
             LOG.info("Playing via mp3 playback")
             self.process = play_mp3(self.song_url)
