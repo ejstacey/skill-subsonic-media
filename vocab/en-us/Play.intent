@@ -1,2 +1,3 @@
 play {music}
+play {music} on random on {backend}
 play {music} on {backend}

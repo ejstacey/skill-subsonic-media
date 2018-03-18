@@ -29,6 +29,7 @@ import time
 import requests
 import os
 import pprint 
+import random
 from hashlib import md5
 from urllib import urlencode
 from os.path import dirname, abspath, basename
@@ -94,36 +95,45 @@ class SubsonicMediaSkill(MycroftSkill):
 	self.albums = defaultdict(dict)
 	self.artists = defaultdict(dict)
 	self.songs = defaultdict(dict)
+        self.sources = defaultdict(dict)
+        self.sources['album'] = defaultdict(dict)
+        self.sources['artist'] = defaultdict(dict)
+        self.sources['song'] = defaultdict(dict)
+        self.sources['genre'] = defaultdict(dict)
+
+        self.results = self.subsonic_connection.getArtists()
+        for artist in self.results['artists']['index']:
+            if type(artist) == type(list()):
+                self.artists[artist['artist']['name']] = artist['artist']['id']
+                artist['artist']['album'] = []
+                self.sources['artist'][artist['artist']['id']] = artist['artist']
+            elif type(artist) == type(dict()):
+                for lartist in artist['artist']:
+                    self.artists[lartist['name']] = lartist['id']
+                    lartist['album'] = []
+                    self.sources['artist'][lartist['id']] = lartist
+
 	cont = 1
 	i = 0
-
 	while (cont == 1):
 	    self.results = self.subsonic_connection.getAlbumList2('newest', 500, i*500)
 	    if self.results['albumList2'] == {}:
 		cont = 0
 	    else: 
 		for album in self.results['albumList2']['album']:
-		    self.albums[album['name']] = album;
-                    self.albums[album['name'] + ' by ' + album['artist']] = album;
+		    self.albums[album['name']] = album['id']
+                    self.albums[album['name'] + ' by ' + album['artist']] = album['id']
                     self.song_results = self.subsonic_connection.getAlbum(album['id'])
+                    self.sources['album'][self.song_results['album']['id']] = self.song_results['album']
+                    self.sources['artist'][self.song_results['album']['artistId']]['album'].append(self.song_results['album']['id'])
                     for song in self.song_results['album']['song']:
+                        self.sources['song'][song['title']] = song
+                        self.sources['song'][song['title'] + ' by ' + song['artist']] = song
                         self.songs[song['title']] = song
                         self.songs[song['title'] + ' by ' + song['artist']] = song
 
 	    i = i+1
 
-	self.results = self.subsonic_connection.getArtists()
-	for artist in self.results['artists']['index']:
-	    if type(artist) == type(list()):
-		self.artists[artist['artist']['name']] = artist['artist']
-	    elif type(artist) == type(dict()):
-		for lartist in artist['artist']:
-		    self.artists[lartist['name']] = lartist
-
-	self.playlist = {}
-        self.playlist.update(self.albums);
-        self.playlist.update(self.artists);
-        self.playlist.update(self.songs);
         self.albums_keys = self.albums.keys();
         self.artists_keys = self.artists.keys();
         self.songs_keys = self.songs.keys();
@@ -145,35 +155,62 @@ class SubsonicMediaSkill(MycroftSkill):
     @intent_file_handler('Play.intent')
     def handle_play(self, message):
         LOG.info('Handling play request')
-        key, confidence = extractOne(message.data.get('music'), self.playlist_keys)
-        if confidence > 50:
-            p = key
+        song_key, song_confidence = extractOne(message.data.get('music'), self.songs_keys)
+        album_key, album_confidence = extractOne(message.data.get('music'), self.albums_keys)
+        artist_key, artist_confidence = extractOne(message.data.get('music'), self.artists_keys)
+
+        if ((song_confidence > 50) and (song_confidence >= album_confidence) and (song_confidence >= artist_confidence)):
+            p = song_key
+            source = 'song'
+        elif ((album_confidence > 50) and (album_confidence >= song_confidence) and (album_confidence >= artist_confidence)):
+            p = album_key
+            source = 'album'
+        elif ((artist_confidence > 50) and (artist_confidence >= song_confidence) and (artist_confidence >= album_confidence)):
+            p = artist_key
+            source = 'artist'
         else:
-            self.speak('couldn\'t find anything matching ' + key)
+            self.speak('couldn\'t find anything matching ' + message.data.get('music'))
             return
 
         backend = message.data.get('backend')
         if backend is None:
             backend = 'vlc'
-        else:
-            LOG.info(type(backend))
 
-        if p in self.playlist:
-            LOG.info('subsonic :' + pp.pformat(self.playlist[p]));
-        else:
-            self.speak('can\'t find ' + p)
-            return
+        randomise = False
+        if backend == 'random':
+            backend = 'vlc'
+            randomise = True;
 
-        self.song_url = self.base_url + '/stream?id=' + self.playlist[p]['id'] + '&' + self.args
-        LOG.info("URL: " + self.song_url)
+        self.tracklist = []
+
+        if source == 'song':
+            url = self.base_url + '/stream?id=' + self.sources['song'][p]['id'] + '&' + self.args
+            self.tracklist.append(url)
+
+        if source == 'album':
+            for song in self.sources['album'][self.albums[p]]['song']:
+                url = self.base_url + '/stream?id=' + song['id'] + '&' + self.args
+                self.tracklist.append(url)
+
+        if source == 'artist':
+            for album in self.sources['artist'][self.artists[p]]['album']:
+                for song in self.sources['album'][album]['song']:
+                    url = self.base_url + '/stream?id=' + song['id'] + '&' + self.args
+                    self.tracklist.append(url)
+                    random.shuffle(self.tracklist)
+
+        utterance = message.data.get('utterance')
+        if "on random" in utterance or randomise == True:
+            randomise = True
+            random.shuffle(self.tracklist)
 
         # if audio service module is available use it
         if self.audioservice:
-            LOG.info("Playing via audioservice on " + backend)
-            self.audioservice.play(self.song_url, backend)
+            LOG.info("Playing " + p + " (" + source + ") via audioservice on " + backend)
+            self.audioservice.play(self.tracklist, backend)
         else: # othervice use normal mp3 playback
             LOG.info("Playing via mp3 playback")
-            self.process = play_mp3(self.song_url)
+            self.process = play_mp3(self.tracklist)
 
 def create_skill():
     return SubsonicMediaSkill()
