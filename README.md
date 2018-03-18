@@ -14,7 +14,7 @@ This module plays streaming content from a Subsonic Media Server (https://www.su
 Eric Stacey <ejstacey@joyrex.net>
 
 ## Configuring
-Install this skill, then go to https://home.mycroft.ai and enter your subsonic details under 
+Install this skill, then go to https://home.mycroft.ai and enter your subsonic details under Skills-\>Subsonic Media Skill
 
 ## Current state
 Working features:
