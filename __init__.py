@@ -25,7 +25,6 @@
 import libsonic
 import time
 import os
-import pprint
 import random
 from hashlib import md5
 from urllib import urlencode
@@ -33,8 +32,6 @@ from mycroft.skills.core import MycroftSkill, intent_file_handler
 from mycroft.util.log import LOG
 from collections import defaultdict
 from fuzzywuzzy.process import extractOne
-
-pp = pprint.PrettyPrinter(indent=4)
 
 try:
     from mycroft.skills.audioservice import AudioService
