@@ -97,11 +97,11 @@ class SubsonicMediaSkill(MycroftSkill):
 
         self.results = self.subsonic_connection.getArtists()
         for artist in self.results['artists']['index']:
-            if isinstance(artist, list()):
+            if artist is list:
                 self.artists[artist['artist']['name']] = artist['artist']['id']
                 artist['artist']['album'] = []
                 self.sources['artist'][artist['artist']['id']] = artist['artist']
-            elif isinstance(artist, dict()):
+            elif isinstance(artist, dict):
                 for lartist in artist['artist']:
                     self.artists[lartist['name']] = lartist['id']
                     lartist['album'] = []
