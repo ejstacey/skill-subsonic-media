@@ -15,7 +15,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-
 # Below is the list of outside modules you'll be using in your skill.
 # They might be built-in to Python, from mycroft-core or from external
 # libraries.  If you use an external library, be sure to include it
@@ -23,17 +22,13 @@
 # when the skill gets installed later by a user.
 
 
-import sys
 import libsonic
 import time
-import requests
 import os
-import pprint 
+import pprint
 import random
 from hashlib import md5
 from urllib import urlencode
-from os.path import dirname, abspath, basename
-from adapt.intent import IntentBuilder
 from mycroft.skills.core import MycroftSkill, intent_file_handler
 from mycroft.util.log import LOG
 from collections import defaultdict
@@ -43,7 +38,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 try:
     from mycroft.skills.audioservice import AudioService
-except:
+except Exception, e:
     from mycroft.util import play_mp3
     AudioService = None
 
@@ -51,6 +46,7 @@ __author__ = 'ejstacey'
 
 # Each skill is contained within its own class, which inherits base methods
 # from the MycroftSkill class.  You extend this class as shown below.
+
 
 class SubsonicMediaSkill(MycroftSkill):
     def __init__(self):
@@ -65,36 +61,34 @@ class SubsonicMediaSkill(MycroftSkill):
         self.subsonic_password = self.settings['password']
         self.salt = md5(os.urandom(100)).hexdigest()
         self.token = md5(self.subsonic_password + self.salt[:12]).hexdigest()
-        self.qdict = {'f': 'mp3',
+        self.qdict = {
+           'f': 'mp3',
            'v': '1.16.0',
            'c': 'mycroft-subsonic',
            'u': self.subsonic_username,
            's': self.salt[:12],
            't': self.token
-           }
+        }
         self.base_url = self.subsonic_server + ':' + str(self.subsonic_port) + self.subsonic_path + '/rest'
         self.args = '%s' % urlencode(self.qdict)
 
-	try:
-	    self.subsonic_connection = libsonic.Connection(
+        try:
+            self.subsonic_connection = libsonic.Connection(
                 self.subsonic_server,
-		self.subsonic_username,
-		self.subsonic_password,
-		self.subsonic_port,
-		self.subsonic_path + '/rest'
-	    )
-        except Exception,e:
-           LOG.info('Could not connect to server ' + self.base_url + ': ' + str(e) + ' - ' + repr(e) + '. retrying in 10 sec')
-           LOG.info(self.args)
-           time.sleep(10)
-           self._connect("Attempting reconnect...");
-
-           return
+                self.subsonic_username,
+                self.subsonic_password,
+                self.subsonic_port,
+                self.subsonic_path + '/rest'
+            )
+        except Exception, e:
+            LOG.info('Could not connect to server ' + self.base_url + ': ' + str(e) + ' - ' + repr(e) + '. retrying in 10 sec')
+            time.sleep(10)
+            self._connect("Attempting reconnect...")
 
         LOG.info('Loading content')
-	self.albums = defaultdict(dict)
-	self.artists = defaultdict(dict)
-	self.songs = defaultdict(dict)
+        self.albums = defaultdict(dict)
+        self.artists = defaultdict(dict)
+        self.songs = defaultdict(dict)
         self.sources = defaultdict(dict)
         self.sources['album'] = defaultdict(dict)
         self.sources['artist'] = defaultdict(dict)
@@ -103,73 +97,87 @@ class SubsonicMediaSkill(MycroftSkill):
 
         self.results = self.subsonic_connection.getArtists()
         for artist in self.results['artists']['index']:
-            if type(artist) == type(list()):
+            if isinstance(artist, list()):
                 self.artists[artist['artist']['name']] = artist['artist']['id']
                 artist['artist']['album'] = []
                 self.sources['artist'][artist['artist']['id']] = artist['artist']
-            elif type(artist) == type(dict()):
+            elif isinstance(artist, dict()):
                 for lartist in artist['artist']:
                     self.artists[lartist['name']] = lartist['id']
                     lartist['album'] = []
                     self.sources['artist'][lartist['id']] = lartist
 
-	cont = 1
-	i = 0
-	while (cont == 1):
-	    self.results = self.subsonic_connection.getAlbumList2('newest', 500, i*500)
-	    if self.results['albumList2'] == {}:
-		cont = 0
-	    else: 
-		for album in self.results['albumList2']['album']:
-		    self.albums[album['name']] = album['id']
+        cont = 1
+        i = 0
+        while (cont == 1):
+            self.results = self.subsonic_connection.getAlbumList2('newest', 500, i*500)
+            if self.results['albumList2'] == {}:
+                cont = 0
+            else:
+                for album in self.results['albumList2']['album']:
+                    self.albums[album['name']] = album['id']
                     self.albums[album['name'] + ' by ' + album['artist']] = album['id']
                     self.song_results = self.subsonic_connection.getAlbum(album['id'])
                     self.sources['album'][self.song_results['album']['id']] = self.song_results['album']
                     self.sources['artist'][self.song_results['album']['artistId']]['album'].append(self.song_results['album']['id'])
                     for song in self.song_results['album']['song']:
                         self.sources['song'][song['title']] = song
-                        self.sources['song'][song['title'] + ' by ' + song['artist']] = song
+                        artist_title = song['title'] + ' by ' + song['artist']
+                        self.sources['song'][artist_title] = song
                         self.songs[song['title']] = song
-                        self.songs[song['title'] + ' by ' + song['artist']] = song
+                        self.songs[artist_title] = song
 
-	    i = i+1
+            i = i+1
 
-        self.albums_keys = self.albums.keys();
-        self.artists_keys = self.artists.keys();
-        self.songs_keys = self.songs.keys();
-        self.playlist_keys = self.albums_keys + self.artists_keys + self.songs_keys;
+        self.albums_keys = self.albums.keys()
+        self.artists_keys = self.artists.keys()
+        self.songs_keys = self.songs.keys()
 
         self.register_vocabulary(self.name, 'NameKeyword')
 
     def initialize(self):
         LOG.info('initializing Subsonic Media skill')
         super(SubsonicMediaSkill, self).initialize()
-        self.load_data_files(dirname(__file__))
 
         self.emitter.on(self.name + '.connect', self._connect)
-	self._connect('connecting...');	
+        self._connect('connecting...')
 
         if AudioService:
-	    self.audioservice = AudioService(self.emitter)
+            self.audioservice = AudioService(self.emitter)
 
     @intent_file_handler('Play.intent')
     def handle_play(self, message):
         LOG.info('Handling play request')
-        song_key, song_confidence = extractOne(message.data.get('music'), self.songs_keys)
-        album_key, album_confidence = extractOne(message.data.get('music'), self.albums_keys)
-        artist_key, artist_confidence = extractOne(message.data.get('music'), self.artists_keys)
+        music = message.data.get('music')
+        song_key, song_confidence = extractOne(music, self.songs_keys)
+        album_key, album_confidence = extractOne(music, self.albums_keys)
+        artist_key, artist_confidence = extractOne(music, self.artists_keys)
 
-        if ((song_confidence > 50) and (song_confidence >= album_confidence) and (song_confidence >= artist_confidence)):
+        if (
+            (song_confidence > 50)
+            and (song_confidence >= album_confidence)
+            and (song_confidence >= artist_confidence)
+        ):
             p = song_key
             source = 'song'
-        elif ((album_confidence > 50) and (album_confidence >= song_confidence) and (album_confidence >= artist_confidence)):
+        elif (
+            (album_confidence > 50)
+            and (album_confidence >= song_confidence)
+            and (album_confidence >= artist_confidence)
+        ):
             p = album_key
             source = 'album'
-        elif ((artist_confidence > 50) and (artist_confidence >= song_confidence) and (artist_confidence >= album_confidence)):
+        elif (
+            (artist_confidence > 50)
+            and (artist_confidence >= song_confidence)
+            and (artist_confidence >= album_confidence)
+        ):
             p = artist_key
             source = 'artist'
         else:
-            self.speak('couldn\'t find anything matching ' + message.data.get('music'))
+            log = "couldn't find anything matching " \
+              + music
+            self.speak(log)
             return
 
         backend = message.data.get('backend')
@@ -179,38 +187,45 @@ class SubsonicMediaSkill(MycroftSkill):
         randomise = False
         if backend == 'random':
             backend = 'vlc'
-            randomise = True;
+            randomise = True
 
         self.tracklist = []
 
         if source == 'song':
-            url = self.base_url + '/stream?id=' + self.sources['song'][p]['id'] + '&' + self.args
+            url = self.base_url + '/stream?id=' \
+              + self.sources['song'][p]['id'] + '&' + self.args
             self.tracklist.append(url)
 
         if source == 'album':
             for song in self.sources['album'][self.albums[p]]['song']:
-                url = self.base_url + '/stream?id=' + song['id'] + '&' + self.args
+                url = self.base_url + '/stream?id=' + song['id'] + '&' \
+                  + self.args
                 self.tracklist.append(url)
 
         if source == 'artist':
             for album in self.sources['artist'][self.artists[p]]['album']:
                 for song in self.sources['album'][album]['song']:
-                    url = self.base_url + '/stream?id=' + song['id'] + '&' + self.args
+                    url = self.base_url + '/stream?id=' + song['id'] + '&' \
+                      + self.args
                     self.tracklist.append(url)
                     random.shuffle(self.tracklist)
 
         utterance = message.data.get('utterance')
-        if "on random" in utterance or randomise == True:
+        if "on random" in utterance or randomise:
             randomise = True
             random.shuffle(self.tracklist)
 
         # if audio service module is available use it
         if self.audioservice:
-            LOG.info("Playing " + p + " (" + source + ") via audioservice on " + backend)
+            log = "Playing " + p + " (" + source + ") via audioservice on " \
+              + backend
+            LOG.info(log)
             self.audioservice.play(self.tracklist, backend)
-        else: # othervice use normal mp3 playback
+        else:
+            # othervice use normal mp3 playback
             LOG.info("Playing via mp3 playback")
             self.process = play_mp3(self.tracklist)
+
 
 def create_skill():
     return SubsonicMediaSkill()
