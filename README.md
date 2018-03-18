@@ -1,15 +1,22 @@
-# Subsonic Media Skill
+## subsonic media player
+A player for media from the subsonic media server
 
-This skill plays music from a Subsonic Media Server (https://www.subsonic.org/)
+## Description 
+This module plays streaming content from a Subsonic Media Server (https://www.subsonic.org/).
 
-Depending on the size of your library, it can take multiple minutes to load this skill. 
+## Examples 
+* "play something i can never have by nine inch nails"
+* "play pretty hate machine"
+* "play nine inch nails"
+* "play pretty hate machine on random on my chromecast"
 
+## Credits 
+Eric Stacey <ejstacey@joyrex.net>
 
-## installing
+## Configuring
 Install this skill, then go to https://home.mycroft.ai and enter your subsonic details under 
 
 ## Current state
-
 Working features:
   - play \<content\>
   - play \<content\> on \<backend\>
@@ -34,7 +41,7 @@ Working features:
   - \<name of chromecast\>
 
 ## Known issues:
-  - As mentioned in the summary at the top, if you have a large library it can take minutes to initialise, and then another chunk of time (tens of seconds) to determine what you specified as \<content\>.
+  - If you have a large library it can take minutes to initialise, and then another chunk of time (tens of seconds) to determine what you specified as \<content\>.
   - Next / Previous don't always work.  I'm using the standard AudioService Playback Control stuff, so not sure why this is yet.
 
 ## TODO
@@ -46,7 +53,6 @@ Working features:
   - random / chromecast combinations work, but just through a fluke... need to make it properly capture/separate the values
 
 ## Action / Logic
-
 When \<content\> computation matches:
   - song: a single song is played
   - artist: all of the music by the artist is put on randomly
