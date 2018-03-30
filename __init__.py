@@ -60,13 +60,16 @@ class SubsonicMediaSkill(MycroftSkill):
         self.token = md5(self.subsonic_password + self.salt[:12]).hexdigest()
         self.qdict = {
            'f': 'mp3',
-           'v': '1.16.0',
+           'v': '1.15.0',
            'c': 'mycroft-subsonic',
            'u': self.subsonic_username,
            's': self.salt[:12],
            't': self.token
         }
-        self.base_url = self.subsonic_server + ':' + str(self.subsonic_port) + self.subsonic_path + '/rest'
+        if self.subsonic_port is None:
+            self.base_url = self.subsonic_server + self.subsonic_path + '/rest'
+        else:
+            self.base_url = self.subsonic_server + ':' + str(self.subsonic_port) + self.subsonic_path + '/rest'
         self.args = '%s' % urlencode(self.qdict)
 
         try:
