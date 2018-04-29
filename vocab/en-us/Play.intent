@@ -1,3 +1,6 @@
 play {music}
 play {music} on random on {backend}
 play {music} on {backend}
+sub play {music}
+sub play {music} on random on {backend}
+sub play {music} on {backend}

@@ -22,12 +22,17 @@ Working features:
   - play \<content\> on \<backend\>
   - play \<content\> on random
   - play \<content\> on random on \<backend\>
+  - sub play \<content\>
+  - sub play \<content\> on \<backend\>
+  - sub play \<content\> on random
+  - sub play \<content\> on random on \<backend\>
   - stop
   - pause
   - unpause / resume
   - next track
   - previous track
 
+Note: Mycroft has an issue where various modules that use the 'play' functionality can conflict.  In this case, you can use 'sub play' instead of 'play' to make sure the subsonic skill is used for playing content.
 
 \<content\> can be:
   - \<song\>
